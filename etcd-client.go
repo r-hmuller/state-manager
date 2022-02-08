@@ -21,7 +21,7 @@ func saveValue(registry Registry) {
 	defer cli.Close()
 	kv := clientv3.NewKV(cli)
 
-	key := registry.service + "-" + registry.uuid
+	key := registry.Service + "-" + registry.Uuid
 	out, err := json.Marshal(registry)
 	if err != nil {
 		panic(err)
@@ -48,14 +48,14 @@ func GetLatestCheckpoint(key string) string {
 		clientv3.WithLimit(0),
 	}
 
-	gr, _ := kv.Get(ctx, "key", opts...)
+	gr, _ := kv.Get(ctx, key, opts...)
 	serviceUuid := ""
-	var latestDatetime int32
+	var latestDatetime int64
 	for _, item := range gr.Kvs {
 		var payload Registry
 		json.Unmarshal(item.Value, &payload)
-		if payload.datetime > latestDatetime {
-			serviceUuid = payload.uuid
+		if payload.Datetime > latestDatetime {
+			serviceUuid = payload.Uuid
 		}
 	}
 

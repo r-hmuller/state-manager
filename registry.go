@@ -1,7 +1,7 @@
 package main
 
 type Registry struct {
-	datetime int32
-	uuid     string
-	service  string
+	Datetime int64
+	Uuid     string
+	Service  string
 }
