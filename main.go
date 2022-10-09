@@ -11,6 +11,22 @@ import (
 func main() {
 	app := fiber.New()
 
+	app.Post("/:service/checkpoint", func(c *fiber.Ctx) error {
+		rawPayload := c.Body()
+		var payload ConfigEntry
+		err := json.Unmarshal(rawPayload, &payload)
+		if err != nil {
+			log.Fatal(err)
+		}
+		SaveKV(c.Params("service"), "checkpoint", payload.Value)
+		return c.SendStatus(201)
+	})
+
+	app.Get("/:service/checkpoint", func(c *fiber.Ctx) error {
+		checkpoint := GetKV(c.Params("service"), "checkpoint")
+		return c.SendString(checkpoint)
+	})
+
 	app.Get("/:service", func(c *fiber.Ctx) error {
 		service := c.Params("service")
 		serviceUuid := GetLatestCheckpoint(service)

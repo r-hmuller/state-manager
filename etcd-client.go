@@ -14,12 +14,7 @@ var (
 
 func saveValue(registry Registry) {
 	ctx, _ := context.WithTimeout(context.Background(), requestTimeout)
-	cli, _ := clientv3.New(clientv3.Config{
-		DialTimeout: dialTimeout,
-		Endpoints:   []string{"127.0.0.1:2379"},
-	})
-	defer cli.Close()
-	kv := clientv3.NewKV(cli)
+	kv := getEtcdClient()
 
 	key := registry.Service + "-" + registry.Uuid
 	out, err := json.Marshal(registry)
@@ -33,20 +28,35 @@ func saveValue(registry Registry) {
 	}
 }
 
+func SaveKV(service string, key string, value string) {
+	ctx, _ := context.WithTimeout(context.Background(), requestTimeout)
+	kv := getEtcdClient()
+
+	_, err := kv.Put(ctx, service+"."+key, value)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func GetKV(service string, key string) string {
+	ctx, _ := context.WithTimeout(context.Background(), requestTimeout)
+	kv := getEtcdClient()
+	opts := getEtcdOpts()
+
+	kvs, err := kv.Get(ctx, service+"."+key, opts...)
+	if err != nil {
+		panic(err)
+	}
+	for _, item := range kvs.Kvs {
+		return string(item.Value)
+	}
+	return ""
+}
+
 func GetLatestCheckpoint(key string) string {
 	ctx, _ := context.WithTimeout(context.Background(), requestTimeout)
-	cli, _ := clientv3.New(clientv3.Config{
-		DialTimeout: dialTimeout,
-		Endpoints:   []string{"127.0.0.1:2379"},
-	})
-	defer cli.Close()
-	kv := clientv3.NewKV(cli)
-
-	opts := []clientv3.OpOption{
-		clientv3.WithPrefix(),
-		clientv3.WithSort(clientv3.SortByKey, clientv3.SortAscend),
-		clientv3.WithLimit(0),
-	}
+	kv := getEtcdClient()
+	opts := getEtcdOpts()
 
 	gr, _ := kv.Get(ctx, key, opts...)
 	serviceUuid := ""
@@ -60,4 +70,20 @@ func GetLatestCheckpoint(key string) string {
 	}
 
 	return serviceUuid
+}
+func getEtcdClient() clientv3.KV {
+	cli, _ := clientv3.New(clientv3.Config{
+		DialTimeout: dialTimeout,
+		Endpoints:   []string{"127.0.0.1:2379"},
+	})
+	defer cli.Close()
+	return clientv3.NewKV(cli)
+}
+
+func getEtcdOpts() []clientv3.OpOption {
+	return []clientv3.OpOption{
+		clientv3.WithPrefix(),
+		clientv3.WithSort(clientv3.SortByKey, clientv3.SortAscend),
+		clientv3.WithLimit(0),
+	}
 }
